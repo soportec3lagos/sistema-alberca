@@ -285,7 +285,9 @@ async function guardarAdmin() {
     rol: currentUser.rol
   });
 
-  msg.innerHTML = res.status === "ok" ? "✅ " + res.mensaje : "❌ " + res.mensaje;
+  msg.innerHTML = res.status === "ok"
+    ? "✅ " + res.mensaje
+    : "❌ " + res.mensaje;
 }
 
 function consulta() {

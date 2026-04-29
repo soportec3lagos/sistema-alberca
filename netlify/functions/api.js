@@ -49,39 +49,98 @@ function fechaMexico() {
 }
 
 async function validarLogin({ user, pass, tor, dep }) {
-  const url = `${SB_URL}/usuarios?usuario=eq.${encodeURIComponent(user.trim())}&password=eq.${encodeURIComponent(pass.trim())}&select=*`;
+  // VALIDACIÓN 1: datos completos de login
+  if (!user || user.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta ingresar el usuario."
+    };
+  }
+
+  if (!pass || pass.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta ingresar la contraseña."
+    };
+  }
+
+  if (!tor || tor.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta seleccionar la torre."
+    };
+  }
+
+  if (!dep || dep.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta ingresar el departamento."
+    };
+  }
+
+  const userLimpio = user.toString().trim();
+  const passLimpio = pass.toString().trim();
+  const torreLimpia = tor.toString().trim();
+  const depaLimpio = dep.toString().trim();
+
+  // Buscar usuario y contraseña
+  const url = `${SB_URL}/usuarios?usuario=eq.${encodeURIComponent(userLimpio)}&password=eq.${encodeURIComponent(passLimpio)}&select=*`;
 
   const res = await fetch(url, { headers: HEADERS });
   const usuarios = await res.json();
 
-  if (usuarios.length === 0) {
-    return { status: "error", mensaje: "Usuario o contraseña incorrectos" };
+  if (!Array.isArray(usuarios) || usuarios.length === 0) {
+    return {
+      status: "error",
+      mensaje: "Usuario o contraseña incorrectos."
+    };
   }
 
+  // Validar torre y departamento del usuario
   const usuarioEncontrado = usuarios.find(u =>
-    u.torre.toString().trim().toLowerCase() === tor.toString().trim().toLowerCase() &&
-    parseFloat(u.depa) === parseFloat(dep)
+    u.torre &&
+    u.depa &&
+    u.torre.toString().trim().toLowerCase() === torreLimpia.toLowerCase() &&
+    parseFloat(u.depa) === parseFloat(depaLimpio)
   );
 
   if (!usuarioEncontrado) {
-    return { status: "error", mensaje: "La Torre o Depto no coinciden con este usuario" };
+    return {
+      status: "error",
+      mensaje: "La torre o departamento no coinciden con este usuario."
+    };
   }
 
-  const urlEstatus = `${SB_URL}/bd_estatus?torre=eq.${encodeURIComponent(tor.trim())}&select=depa,estado`;
+  // VALIDACIÓN 2: bloqueo por adeudo
+  const urlEstatus = `${SB_URL}/bd_estatus?torre=eq.${encodeURIComponent(torreLimpia)}&select=depa,estado`;
+
   const resEstatus = await fetch(urlEstatus, { headers: HEADERS });
   const dataEstatus = await resEstatus.json();
 
-  const registroEstatus = dataEstatus.find(e => parseFloat(e.depa) === parseFloat(dep));
+  const registroEstatus = dataEstatus.find(e =>
+    parseFloat(e.depa) === parseFloat(depaLimpio)
+  );
 
   if (!registroEstatus) {
-    return { status: "error", mensaje: "Departamento no registrado en el sistema de estatus" };
+    return {
+      status: "error",
+      mensaje: "Departamento no registrado en el sistema de estatus."
+    };
   }
 
-  if (registroEstatus.estado.toLowerCase() === "adeudo") {
-    return { status: "error", mensaje: "Acceso denegado por falta de pago" };
+  const estado = registroEstatus.estado.toString().trim().toLowerCase();
+
+  if (estado === "adeudo") {
+    return {
+      status: "error",
+      mensaje: "Acceso denegado por falta de pago."
+    };
   }
 
-  return { status: "ok", ...usuarioEncontrado };
+  return {
+    status: "ok",
+    ...usuarioEncontrado
+  };
 }
 
 async function obtenerDisponibilidad(fecha) {
@@ -110,8 +169,58 @@ async function reservar(datos) {
   const hoy = new Date();
   const hoyStr = fechaMexico();
 
-  const diaHoy = hoy.getDay();
+ // VALIDACIÓN 12: no permitir guardar reservas incompletas
+if (!datos.nombre || datos.nombre.toString().trim() === "") {
+  return {
+    status: "error",
+    mensaje: "Falta el nombre del responsable."
+  };
+}
 
+if (!datos.fecha || datos.fecha.toString().trim() === "") {
+  return {
+    status: "error",
+    mensaje: "Falta seleccionar la fecha de reserva."
+  };
+}
+
+if (!datos.bloque || datos.bloque.toString().trim() === "") {
+  return {
+    status: "error",
+    mensaje: "Falta seleccionar el horario de reserva."
+  };
+}
+
+if (!datos.torre || datos.torre.toString().trim() === "") {
+  return {
+    status: "error",
+    mensaje: "Falta seleccionar la torre."
+  };
+}
+
+if (!datos.depa || datos.depa.toString().trim() === "") {
+  return {
+    status: "error",
+    mensaje: "Falta ingresar el departamento."
+  };
+}
+
+if (!datos.personas || datos.personas.toString().trim() === "") {
+  return {
+    status: "error",
+    mensaje: "Falta ingresar el número de personas."
+  };
+}
+
+if (!datos.tipo || datos.tipo.toString().trim() === "") {
+  return {
+    status: "error",
+    mensaje: "Falta seleccionar el tipo de reserva."
+  };
+}
+
+  // Si hoy es sábado y quieren reservar domingo, no permitir
+  const diaHoy = hoy.getDay();
   const fechaReservaTemp = new Date(datos.fecha + "T00:00:00");
   const diaReserva = fechaReservaTemp.getDay();
 
@@ -122,13 +231,33 @@ async function reservar(datos) {
     };
   }
 
-  if (datos.fecha < hoyStr) {
-    return {
-      status: "error",
-      mensaje: "No se pueden registrar fechas pasadas."
-    };
-  }
+  // Nadie puede registrar fechas pasadas
+if (datos.fecha < hoyStr) {
+  return {
+    status: "error",
+    mensaje: "No se pueden registrar fechas pasadas."
+  };
+}
 
+// VALIDACIÓN: no permitir reservar más de 20 días adelante
+const fechaMaxima = new Date();
+fechaMaxima.setDate(fechaMaxima.getDate() + 20);
+
+const fechaMaximaStr = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Mexico_City",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+}).format(fechaMaxima);
+
+if (datos.fecha > fechaMaximaStr) {
+  return {
+    status: "error",
+    mensaje: "Solo se puede reservar con máximo 20 días de anticipación."
+  };
+}
+
+  // Usuario normal no puede reservar hoy
   if (datos.fecha === hoyStr && datos.rol !== "admin") {
     return {
       status: "error",
@@ -136,20 +265,29 @@ async function reservar(datos) {
     };
   }
 
+  // Validar personas
   let numPersonas = parseInt(datos.personas);
   if (isNaN(numPersonas) || numPersonas < 1) numPersonas = 1;
   if (numPersonas > 6) numPersonas = 6;
 
-  if (datos.rol !== "admin") {
-    const urlCheck = `${SB_URL}/res?fecha=eq.${datos.fecha}&torre=eq.${encodeURIComponent(datos.torre)}&depa=eq.${encodeURIComponent(datos.depa)}&select=*`;
-    const resCheck = await fetch(urlCheck, { headers: HEADERS });
-    const existe = await resCheck.json();
+  // VALIDACIÓN 9: una reserva por día por departamento
+  // Aplica para usuario normal y admin
+  const torreLimpia = datos.torre.toString().trim();
+  const depaLimpio = datos.depa.toString().trim();
 
-    if (existe.length > 0) {
-      return { status: "error", mensaje: "Ya tienes una reserva para este día." };
-    }
+  const urlCheck = `${SB_URL}/res?fecha=eq.${datos.fecha}&torre=eq.${encodeURIComponent(torreLimpia)}&depa=eq.${encodeURIComponent(depaLimpio)}&select=*`;
+
+  const resCheck = await fetch(urlCheck, { headers: HEADERS });
+  const reservasExistentes = await resCheck.json();
+
+  if (reservasExistentes.length > 0) {
+    return {
+      status: "error",
+      mensaje: "Ya existe una reserva para este departamento en este día."
+    };
   }
 
+  // Validar fin de semana o festivo
   const fechaReserva = new Date(datos.fecha + "T00:00:00");
   const diaSemana = fechaReserva.getDay();
   const esFinSemana = diaSemana === 0 || diaSemana === 6;
@@ -166,12 +304,28 @@ async function reservar(datos) {
     };
   }
 
+  // VALIDACIÓN 11: máximo 5 reservas por bloque
+  const bloqueNormalizado = datos.bloque.trim().toUpperCase();
+
+  const urlBloque = `${SB_URL}/res?fecha=eq.${datos.fecha}&bloque=eq.${bloqueNormalizado}&select=*`;
+
+  const resBloque = await fetch(urlBloque, { headers: HEADERS });
+  const reservasBloque = await resBloque.json();
+
+  if (reservasBloque.length >= 5) {
+    return {
+      status: "error",
+      mensaje: "Este horario ya no tiene lugares disponibles."
+    };
+  }
+
+  // Guardar reserva
   const payload = {
     fecha: datos.fecha,
-    bloque: datos.bloque.trim().toUpperCase(),
+    bloque: bloqueNormalizado,
     nombre: datos.nombre,
-    torre: datos.torre,
-    depa: datos.depa.toString(),
+    torre: torreLimpia,
+    depa: depaLimpio,
     personas: numPersonas,
     tipo: datos.tipo
   };
@@ -184,7 +338,10 @@ async function reservar(datos) {
 
   if (!guardar.ok) {
     const errorText = await guardar.text();
-    return { status: "error", mensaje: "Error DB: " + errorText };
+    return {
+      status: "error",
+      mensaje: "Error DB: " + errorText
+    };
   }
 
   return {
@@ -226,19 +383,33 @@ async function consultaDepto(torre, depa) {
 }
 
 async function validarDeptoAdmin(torre, depa) {
-  const url = `${SB_URL}/bd_estatus?torre=eq.${encodeURIComponent(torre)}&depa=eq.${encodeURIComponent(depa)}&select=estado`;
+  if (!torre || !depa) {
+    return {
+      status: "error",
+      mensaje: "Falta torre o departamento."
+    };
+  }
+
+  const torreLimpia = torre.toString().trim();
+  const depaLimpio = depa.toString().trim();
+
+  const url = `${SB_URL}/bd_estatus?torre=eq.${encodeURIComponent(torreLimpia)}&select=depa,estado`;
 
   const res = await fetch(url, { headers: HEADERS });
   const data = await res.json();
 
-  if (data.length === 0) {
+  const registro = data.find(e => {
+    return parseFloat(e.depa) === parseFloat(depaLimpio);
+  });
+
+  if (!registro) {
     return {
       status: "error",
       mensaje: "Departamento no encontrado en el sistema de estatus 🧐"
     };
   }
 
-  const estado = data[0].estado.toLowerCase();
+  const estado = registro.estado.toString().trim().toLowerCase();
 
   if (estado === "adeudo") {
     return {
