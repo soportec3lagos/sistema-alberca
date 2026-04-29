@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema Alberca</title>
+
+<style>
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 420px;
+    width: 90%;
+    margin: 20px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+  }
+
+  h2 { 
+    text-align: center; 
+    color: #2f3542;
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+
+  input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 12px;
+    border: 1px solid #e1e1e1;
+    box-sizing: border-box;
+    font-size: 15px;
+  }
+
+  select:invalid, select option[value=""] {
+    color: #a1a1a1;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 8px rgba(79, 172, 254, 0.3);
+  }
+
+  button {
+    background: #007bff;
+    color: white;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  button:hover { 
+    background: #0056b3; 
+    transform: translateY(-2px);
+  }
+
+  .back { 
+    background: #6c757d; 
+    margin-top: 15px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 14px;
+  }
+
+  th, td {
+    border: 1px solid #eee;
+    padding: 10px;
+    text-align: center;
+  }
+
+  th { 
+    background: #f8f9fa; 
+    color: #555;
+  }
+
+  #msg {
+    text-align: center;
+    font-weight: bold;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container" id="app"></div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
