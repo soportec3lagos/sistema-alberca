@@ -11,6 +11,63 @@ async function api(action, data = {}) {
   return await res.json();
 }
 
+function registroDia() {
+  app.innerHTML = `
+    <h2>📄 Registro del día</h2>
+
+    <input type="date" id="fechaRegistro">
+
+    <button onclick="buscarRegistroDia()">Consultar registro</button>
+    <button class="back" onclick="menu()">⬅ Volver</button>
+
+    <div id="resultadoRegistro"></div>
+  `;
+}
+
+async function buscarRegistroDia() {
+  resultadoRegistro.innerHTML = "⏳ Cargando...";
+
+  const res = await api("registroDia", {
+    fecha: fechaRegistro.value
+  });
+
+  if (res.status !== "ok") {
+    resultadoRegistro.innerHTML = "❌ " + res.mensaje;
+    return;
+  }
+
+  let html = `
+    <h3>Registro: ${res.fecha}</h3>
+    <table>
+      <tr>
+        <th>Horario</th>
+        <th>Torre</th>
+        <th>Depto</th>
+        <th>Responsable</th>
+        <th>Personas</th>
+        <th>Asignados</th>
+        <th>Observaciones</th>
+      </tr>
+  `;
+
+  res.registros.forEach(r => {
+    html += `
+      <tr>
+        <td>${r.horario}</td>
+        <td>${r.torre}</td>
+        <td>${r.depa}</td>
+        <td>${r.nombre}</td>
+        <td>${r.personas}</td>
+        <td></td>
+        <td></td>
+      </tr>
+    `;
+  });
+
+  html += "</table>";
+  resultadoRegistro.innerHTML = html;
+}
+
 function pantallaLogin() {
   currentUser = null;
 
@@ -64,10 +121,11 @@ function menu() {
   }
 
   if (currentUser.rol === "admin") {
-    adminBtn = `
-      <button onclick="formReservaAdmin()">🛠 Reserva Admin</button>
-    `;
-  }
+  adminBtn = `
+    <button onclick="formReservaAdmin()">🛠 Reserva Admin</button>
+    <button onclick="registroDia()">📄 Registro del día</button>
+  `;
+}
 
   if (currentUser.rol === "admin" || currentUser.rol === "seguridad") {
     consultaBtn = `<button onclick="consulta()">🔍 Consulta</button>`;

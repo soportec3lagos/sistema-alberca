@@ -23,6 +23,7 @@ exports.handler = async function(event) {
     if (action === "reservar") return respuesta(200, await reservar(data));
     if (action === "consultaDepto") return respuesta(200, await consultaDepto(data.torre, data.depa));
     if (action === "validarDeptoAdmin") return respuesta(200, await validarDeptoAdmin(data.torre, data.depa));
+	if (action === "registroDia") return respuesta(200, await registroDia(data.fecha));
 
     return respuesta(400, { status: "error", mensaje: "Acción no válida" });
 
@@ -421,5 +422,47 @@ async function validarDeptoAdmin(torre, depa) {
   return {
     status: "ok",
     mensaje: "¡Todo en orden! Listo para reservar ✨"
+  };
+}
+
+async function registroDia(fecha) {
+  if (!fecha || fecha.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Selecciona una fecha."
+    };
+  }
+
+  const url = `${SB_URL}/res?fecha=eq.${fecha}&order=bloque.asc`;
+
+  const res = await fetch(url, { headers: HEADERS });
+  const datos = await res.json();
+
+  if (!datos || datos.length === 0) {
+    return {
+      status: "error",
+      mensaje: "No hay registros para esta fecha."
+    };
+  }
+
+  const horarios = {
+    A: "09-13",
+    B: "13-16",
+    C: "16-19",
+    D: "19-22"
+  };
+
+  const registros = datos.map(r => ({
+    horario: horarios[r.bloque.trim().toUpperCase()] || r.bloque,
+    torre: r.torre,
+    depa: r.depa,
+    nombre: r.nombre,
+    personas: r.personas
+  }));
+
+  return {
+    status: "ok",
+    fecha,
+    registros
   };
 }
