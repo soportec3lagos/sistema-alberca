@@ -24,6 +24,8 @@ function registroDia() {
   `;
 }
 
+let ultimoRegistroDia = null;
+
 async function buscarRegistroDia() {
   resultadoRegistro.innerHTML = "⏳ Cargando...";
 
@@ -33,11 +35,17 @@ async function buscarRegistroDia() {
 
   if (res.status !== "ok") {
     resultadoRegistro.innerHTML = "❌ " + res.mensaje;
+    ultimoRegistroDia = null;
     return;
   }
 
+  ultimoRegistroDia = res;
+
   let html = `
     <h3>Registro: ${res.fecha}</h3>
+
+    <button onclick="generarPDFRegistro()">📥 Descargar PDF</button>
+
     <table>
       <tr>
         <th>Horario</th>
@@ -66,6 +74,60 @@ async function buscarRegistroDia() {
 
   html += "</table>";
   resultadoRegistro.innerHTML = html;
+}
+
+function generarPDFRegistro() {
+  if (!ultimoRegistroDia || !ultimoRegistroDia.registros) {
+    alert("Primero consulta un registro.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "letter"
+  });
+
+  doc.setFontSize(16);
+  doc.text(`Registro del día ${ultimoRegistroDia.fecha}`, 140, 15, {
+    align: "center"
+  });
+
+  const filas = ultimoRegistroDia.registros.map(r => [
+    r.horario,
+    r.torre,
+    r.depa,
+    r.nombre,
+    r.personas,
+    "",
+    ""
+  ]);
+
+  doc.autoTable({
+    startY: 25,
+    head: [[
+      "Horario",
+      "Torre",
+      "Depto",
+      "Responsable",
+      "Personas",
+      "Asignados",
+      "Observaciones"
+    ]],
+    body: filas,
+    styles: {
+      fontSize: 9,
+      cellPadding: 3
+    },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0]
+    }
+  });
+
+  doc.save(`Registro_${ultimoRegistroDia.fecha}.pdf`);
 }
 
 function pantallaLogin() {
