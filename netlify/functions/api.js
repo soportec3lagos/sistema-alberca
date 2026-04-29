@@ -354,13 +354,31 @@ if (datos.fecha > fechaMaximaStr) {
 async function consultaDepto(torre, depa) {
   const hoyStr = fechaMexico();
 
-  const urlE = `${SB_URL}/bd_estatus?torre=eq.${encodeURIComponent(torre)}&depa=eq.${encodeURIComponent(depa)}&select=estado`;
+  if (!torre || !depa) {
+    return {
+      estatus: "No registrado",
+      reservas: []
+    };
+  }
+
+  const torreLimpia = torre.toString().trim();
+  const depaLimpio = depa.toString().trim();
+
+  // Buscar estatus por torre y comparar depa de forma flexible
+  const urlE = `${SB_URL}/bd_estatus?torre=eq.${encodeURIComponent(torreLimpia)}&select=depa,estado`;
+
   const resE = await fetch(urlE, { headers: HEADERS });
-  const estatusData = await resE.json();
+  const estatusRaw = await resE.json();
 
-  const estatus = estatusData.length > 0 ? estatusData[0].estado : "No registrado";
+  const registroEstatus = estatusRaw.find(e =>
+    parseFloat(e.depa) === parseFloat(depaLimpio)
+  );
 
-  const urlR = `${SB_URL}/res?torre=eq.${encodeURIComponent(torre)}&depa=eq.${encodeURIComponent(depa)}&order=fecha.asc`;
+  const estatus = registroEstatus ? registroEstatus.estado : "No registrado";
+
+  // Buscar reservas por torre y comparar depa de forma flexible
+  const urlR = `${SB_URL}/res?torre=eq.${encodeURIComponent(torreLimpia)}&order=fecha.asc&select=*`;
+
   const resR = await fetch(urlR, { headers: HEADERS });
   const reservasRaw = await resR.json();
 
@@ -372,15 +390,19 @@ async function consultaDepto(torre, depa) {
   };
 
   const reservas = reservasRaw
+    .filter(r => parseFloat(r.depa) === parseFloat(depaLimpio))
     .filter(r => r.fecha >= hoyStr)
     .map(r => ({
       fecha: r.fecha,
-      horario: horarios[r.bloque.trim().toUpperCase()] || "S/H",
+      horario: horarios[r.bloque.toString().trim().toUpperCase()] || "S/H",
       responsable: r.nombre,
       personas: r.personas
     }));
 
-  return { estatus, reservas };
+  return {
+    estatus,
+    reservas
+  };
 }
 
 async function validarDeptoAdmin(torre, depa) {
