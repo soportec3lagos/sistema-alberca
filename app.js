@@ -40,40 +40,9 @@ async function buscarRegistroDia() {
   }
 
   ultimoRegistroDia = res;
+  resultadoRegistro.innerHTML = "";
 
-  let html = `
-    <h3>Registro: ${res.fecha}</h3>
-
-    <button onclick="generarPDFRegistro()">📥 Descargar PDF</button>
-
-    <table>
-      <tr>
-        <th>Horario</th>
-        <th>Torre</th>
-        <th>Depto</th>
-        <th>Responsable</th>
-        <th>Personas</th>
-        <th>Asignados</th>
-        <th>Observaciones</th>
-      </tr>
-  `;
-
-  res.registros.forEach(r => {
-    html += `
-      <tr>
-        <td>${r.horario}</td>
-        <td>${r.torre}</td>
-        <td>${r.depa}</td>
-        <td>${r.nombre}</td>
-        <td>${r.personas}</td>
-        <td></td>
-        <td></td>
-      </tr>
-    `;
-  });
-
-  html += "</table>";
-  resultadoRegistro.innerHTML = html;
+  mostrarModalRegistro(res);
 }
 
 function generarPDFRegistro() {
@@ -128,6 +97,105 @@ function generarPDFRegistro() {
   });
 
   doc.save(`Registro_${ultimoRegistroDia.fecha}.pdf`);
+}
+
+function mostrarModalRegistro(res) {
+  const modalAnterior = document.getElementById("modalRegistro");
+  if (modalAnterior) modalAnterior.remove();
+
+  let filas = "";
+
+  res.registros.forEach(r => {
+    filas += `
+      <tr>
+        <td>${r.horario}</td>
+        <td>${r.torre}</td>
+        <td>${r.depa}</td>
+        <td>${r.nombre}</td>
+        <td>${r.personas}</td>
+        <td></td>
+        <td></td>
+      </tr>
+    `;
+  });
+
+  const modal = document.createElement("div");
+  modal.id = "modalRegistro";
+  modal.innerHTML = `
+    <div style="
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    ">
+      <div style="
+        background: white;
+        width: 95%;
+        max-width: 1000px;
+        max-height: 90vh;
+        overflow: auto;
+        border-radius: 18px;
+        padding: 25px;
+        position: relative;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      ">
+        <button onclick="cerrarModalRegistro()" style="
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: #dc3545;
+          color: white;
+          border: none;
+          font-size: 22px;
+          font-weight: bold;
+          cursor: pointer;
+          padding: 0;
+        ">×</button>
+
+        <h2 style="margin-top: 10px;">📄 Registro del día</h2>
+        <h3 style="text-align:center;">${res.fecha}</h3>
+
+        <button onclick="generarPDFRegistro()" style="
+          margin-bottom: 15px;
+          background: #007bff;
+          color: white;
+        ">📥 Descargar PDF</button>
+
+        <div style="overflow-x:auto;">
+          <table style="
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+          ">
+            <tr>
+              <th>Horario</th>
+              <th>Torre</th>
+              <th>Depto</th>
+              <th>Responsable</th>
+              <th>Personas</th>
+              <th>Asignados</th>
+              <th>Observaciones</th>
+            </tr>
+            ${filas}
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function cerrarModalRegistro() {
+  const modal = document.getElementById("modalRegistro");
+  if (modal) modal.remove();
 }
 
 function pantallaLogin() {
