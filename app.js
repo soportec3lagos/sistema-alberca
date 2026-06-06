@@ -254,6 +254,7 @@ function menu() {
   adminBtn = `
     <button onclick="formReservaAdmin()">🛠 Reserva Admin</button>
     <button onclick="registroDia()">📄 Registro del día</button>
+	<button onclick="capturaUsuario()">👤 Captura usuario</button>
   `;
 }
 
@@ -536,3 +537,163 @@ async function buscarConsulta() {
 }
 
 pantallaLogin();
+
+function capturaUsuario() {
+  app.innerHTML = `
+    <h2>👤 Captura usuario</h2>
+
+    <input id="nuevoUsuario" placeholder="Usuario">
+    <input id="nuevoPassword" type="password" placeholder="Password">
+    <input id="nuevoNombre" placeholder="Nombre">
+
+    <select id="nuevoRol">
+      <option value="" disabled selected hidden>Selecciona rol</option>
+      <option value="user">user</option>
+      <option value="admin">admin</option>
+      <option value="seguridad">seguridad</option>
+    </select>
+
+    <select id="nuevaTorre">
+      <option value="" disabled selected hidden>Selecciona Torre</option>
+      <option>Torre 9</option>
+      <option>Torre 10</option>
+      <option>Torre 11</option>
+      <option>Torre 12</option>
+    </select>
+
+    <input id="nuevoDepa" placeholder="Departamento">
+
+    <button onclick="agregarUsuario()">Agregar usuario</button>
+    <button class="back" onclick="menu()">⬅ Regresar</button>
+
+    <p id="msg"></p>
+  `;
+}
+
+async function agregarUsuario() {
+  msg.innerHTML = "⏳ Guardando usuario...";
+
+  const res = await api("agregarUsuario", {
+    usuario: nuevoUsuario.value,
+    password: nuevoPassword.value,
+    nombre: nuevoNombre.value,
+    rol: nuevoRol.value,
+    torre: nuevaTorre.value,
+    depa: nuevoDepa.value,
+    rolActual: currentUser.rol
+  });
+
+  if (res.status !== "ok") {
+    msg.innerHTML = "❌ " + res.mensaje;
+    return;
+  }
+
+  msg.innerHTML = "";
+
+  mostrarModalUsuarioAgregado(res.usuario);
+
+  nuevoUsuario.value = "";
+  nuevoPassword.value = "";
+  nuevoNombre.value = "";
+  nuevoRol.value = "";
+  nuevaTorre.value = "";
+  nuevoDepa.value = "";
+}
+
+function mostrarModalUsuarioAgregado(usuario) {
+  const modalAnterior = document.getElementById("modalUsuarioAgregado");
+  if (modalAnterior) modalAnterior.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "modalUsuarioAgregado";
+
+  modal.innerHTML = `
+    <div style="
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.60);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    ">
+      <div style="
+        background: white;
+        width: 95%;
+        max-width: 430px;
+        border-radius: 20px;
+        padding: 25px;
+        position: relative;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      ">
+        <button onclick="cerrarModalUsuarioAgregado()" style="
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: #dc3545;
+          color: white;
+          border: none;
+          font-size: 22px;
+          font-weight: bold;
+          cursor: pointer;
+          padding: 0;
+        ">×</button>
+
+        <h2 style="margin-top: 10px;">✅ Usuario agregado</h2>
+
+        <table style="
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+          font-size: 14px;
+        ">
+          <tr>
+            <th style="text-align:left;">Campo</th>
+            <th style="text-align:left;">Dato</th>
+          </tr>
+          <tr>
+            <td><b>Usuario</b></td>
+            <td>${usuario.usuario}</td>
+          </tr>
+          <tr>
+            <td><b>Password</b></td>
+            <td>${usuario.password}</td>
+          </tr>
+          <tr>
+            <td><b>Nombre</b></td>
+            <td>${usuario.nombre}</td>
+          </tr>
+          <tr>
+            <td><b>Rol</b></td>
+            <td>${usuario.rol}</td>
+          </tr>
+          <tr>
+            <td><b>Torre</b></td>
+            <td>${usuario.torre}</td>
+          </tr>
+          <tr>
+            <td><b>Depa</b></td>
+            <td>${usuario.depa}</td>
+          </tr>
+        </table>
+
+        <button onclick="cerrarModalUsuarioAgregado()" style="
+          margin-top: 20px;
+          background: #007bff;
+          color: white;
+        ">Aceptar</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function cerrarModalUsuarioAgregado() {
+  const modal = document.getElementById("modalUsuarioAgregado");
+  if (modal) modal.remove();
+}

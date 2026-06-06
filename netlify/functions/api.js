@@ -24,6 +24,7 @@ exports.handler = async function(event) {
     if (action === "consultaDepto") return respuesta(200, await consultaDepto(data.torre, data.depa));
     if (action === "validarDeptoAdmin") return respuesta(200, await validarDeptoAdmin(data.torre, data.depa));
 	if (action === "registroDia") return respuesta(200, await registroDia(data.fecha));
+	if (action === "agregarUsuario") return respuesta(200, await agregarUsuario(data));
 
     return respuesta(400, { status: "error", mensaje: "Acción no válida" });
 
@@ -486,5 +487,114 @@ async function registroDia(fecha) {
     status: "ok",
     fecha,
     registros
+  };
+}
+
+async function agregarUsuario(datos) {
+  if (!datos || datos.rolActual !== "admin") {
+    return {
+      status: "error",
+      mensaje: "No tienes permisos para agregar usuarios."
+    };
+  }
+
+  if (!datos.usuario || datos.usuario.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta capturar el usuario."
+    };
+  }
+
+  if (!datos.password || datos.password.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta capturar el password."
+    };
+  }
+
+  if (!datos.nombre || datos.nombre.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta capturar el nombre."
+    };
+  }
+
+  if (!datos.rol || datos.rol.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta seleccionar el rol."
+    };
+  }
+
+  if (!["user", "admin", "seguridad"].includes(datos.rol)) {
+    return {
+      status: "error",
+      mensaje: "Rol no válido."
+    };
+  }
+
+  if (!datos.torre || datos.torre.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta seleccionar la torre."
+    };
+  }
+
+  if (!datos.depa || datos.depa.toString().trim() === "") {
+    return {
+      status: "error",
+      mensaje: "Falta capturar el departamento."
+    };
+  }
+
+  const usuarioLimpio = datos.usuario.toString().trim();
+  const passwordLimpio = datos.password.toString().trim();
+  const nombreLimpio = datos.nombre.toString().trim();
+  const rolLimpio = datos.rol.toString().trim();
+  const torreLimpia = datos.torre.toString().trim();
+  const depaLimpio = datos.depa.toString().trim();
+
+  // Revisar si el usuario ya existe
+  const urlExiste = `${SB_URL}/usuarios?usuario=eq.${encodeURIComponent(usuarioLimpio)}&select=usuario`;
+
+  const resExiste = await fetch(urlExiste, { headers: HEADERS });
+  const existe = await resExiste.json();
+
+  if (Array.isArray(existe) && existe.length > 0) {
+    return {
+      status: "error",
+      mensaje: "Ese usuario ya existe."
+    };
+  }
+
+  const payload = {
+    usuario: usuarioLimpio,
+    password: passwordLimpio,
+    nombre: nombreLimpio,
+    rol: rolLimpio,
+    torre: torreLimpia,
+    depa: depaLimpio
+  };
+
+  const guardar = await fetch(`${SB_URL}/usuarios`, {
+    method: "POST",
+    headers: HEADERS,
+    body: JSON.stringify(payload)
+  });
+
+  if (!guardar.ok) {
+    const errorText = await guardar.text();
+    return {
+      status: "error",
+      mensaje: "Error DB: " + errorText
+    };
+  }
+
+  const usuarioGuardado = await guardar.json();
+
+  return {
+    status: "ok",
+    mensaje: "Usuario agregado correctamente.",
+    usuario: usuarioGuardado[0]
   };
 }
