@@ -464,15 +464,16 @@ async function guardarAdmin() {
   }
 
   const res = await api("reservar", {
-    nombre: nombreAdmin.value,
-    fecha: fechaAdmin.value,
-    bloque: bloqueAdmin.value,
-    torre: torreAdmin.value,
-    depa: depaAdmin.value,
-    personas: Number(personasAdmin.value),
-    tipo: tipoAdmin.value,
-    rol: currentUser.rol
-  });
+  nombre: nombreAdmin.value,
+  fecha: fechaAdmin.value,
+  bloque: bloqueAdmin.value,
+  torre: torreAdmin.value,
+  depa: depaAdmin.value,
+  personas: Number(personasAdmin.value),
+  tipo: tipoAdmin.value,
+  rol: currentUser.rol,
+  modoAdmin: true
+});
 
   msg.innerHTML = res.status === "ok"
     ? "✅ " + res.mensaje

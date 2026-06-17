@@ -222,16 +222,17 @@ if (!datos.tipo || datos.tipo.toString().trim() === "") {
 }
 
   // Si hoy es sábado y quieren reservar domingo, no permitir
-  const diaHoy = hoy.getDay();
-  const fechaReservaTemp = new Date(datos.fecha + "T00:00:00");
-  const diaReserva = fechaReservaTemp.getDay();
+// Esta validación NO aplica para Reserva Admin
+const diaHoy = hoy.getDay();
+const fechaReservaTemp = new Date(datos.fecha + "T00:00:00");
+const diaReserva = fechaReservaTemp.getDay();
 
-  if (diaHoy === 6 && diaReserva === 0) {
-    return {
-      status: "error",
-      mensaje: "No se puede reservar en fin de semana los sábados."
-    };
-  }
+if (!datos.modoAdmin && diaHoy === 6 && diaReserva === 0) {
+  return {
+    status: "error",
+    mensaje: "No se puede reservar en fin de semana los sábados."
+  };
+}
 
   // Nadie puede registrar fechas pasadas
 if (datos.fecha < hoyStr) {
@@ -289,7 +290,10 @@ if (datos.fecha > fechaMaximaStr) {
     };
   }
 
+
   // Validar fin de semana o festivo
+// Esta validación NO aplica para Reserva Admin
+if (!datos.modoAdmin) {
   const fechaReserva = new Date(datos.fecha + "T00:00:00");
   const diaSemana = fechaReserva.getDay();
   const esFinSemana = diaSemana === 0 || diaSemana === 6;
@@ -305,6 +309,7 @@ if (datos.fecha > fechaMaximaStr) {
       mensaje: "Solo se permite reservar fines de semana o días festivos."
     };
   }
+}
 
   // VALIDACIÓN 11: máximo 5 reservas por bloque
   const bloqueNormalizado = datos.bloque.trim().toUpperCase();
@@ -566,6 +571,26 @@ async function agregarUsuario(datos) {
       mensaje: "Ese usuario ya existe."
     };
   }
+  
+  // Revisar si ya existe la misma torre y el mismo departamento
+const urlTorreDepa = `${SB_URL}/usuarios?torre=eq.${encodeURIComponent(torreLimpia)}&select=torre,depa`;
+
+const resTorreDepa = await fetch(urlTorreDepa, { headers: HEADERS });
+const usuariosTorre = await resTorreDepa.json();
+
+const existeTorreDepa = usuariosTorre.find(u =>
+  u.torre &&
+  u.depa &&
+  u.torre.toString().trim().toLowerCase() === torreLimpia.toLowerCase() &&
+  parseFloat(u.depa) === parseFloat(depaLimpio)
+);
+
+if (existeTorreDepa) {
+  return {
+    status: "error",
+    mensaje: "Torre y depa ya registrado."
+  };
+}
 
   const payload = {
     usuario: usuarioLimpio,
