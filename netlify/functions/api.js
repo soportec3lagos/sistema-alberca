@@ -573,7 +573,7 @@ async function agregarUsuario(datos) {
   }
   
   // Revisar si ya existe la misma torre y el mismo departamento
-const urlTorreDepa = `${SB_URL}/usuarios?torre=eq.${encodeURIComponent(torreLimpia)}&select=torre,depa`;
+const urlTorreDepa = `${SB_URL}/usuarios?torre=eq.${encodeURIComponent(torreLimpia)}&select=usuario,password,nombre,rol,torre,depa`;
 
 const resTorreDepa = await fetch(urlTorreDepa, { headers: HEADERS });
 const usuariosTorre = await resTorreDepa.json();
@@ -587,8 +587,9 @@ const existeTorreDepa = usuariosTorre.find(u =>
 
 if (existeTorreDepa) {
   return {
-    status: "error",
-    mensaje: "Torre y depa ya registrado."
+    status: "duplicado_torre_depa",
+    mensaje: "Torre y depa ya registrado.",
+    usuario: existeTorreDepa
   };
 }
 

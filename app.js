@@ -537,8 +537,6 @@ async function buscarConsulta() {
   resultado.innerHTML = html;
 }
 
-pantallaLogin();
-
 function capturaUsuario() {
   app.innerHTML = `
     <h2>👤 Captura usuario</h2>
@@ -584,10 +582,16 @@ async function agregarUsuario() {
     rolActual: currentUser.rol
   });
 
-  if (res.status !== "ok") {
-    msg.innerHTML = "❌ " + res.mensaje;
-    return;
-  }
+  if (res.status === "duplicado_torre_depa") {
+  msg.innerHTML = "";
+  mostrarModalUsuarioExistente(res.usuario);
+  return;
+}
+
+if (res.status !== "ok") {
+  msg.innerHTML = "❌ " + res.mensaje;
+  return;
+}
 
   msg.innerHTML = "";
 
@@ -698,3 +702,119 @@ function cerrarModalUsuarioAgregado() {
   const modal = document.getElementById("modalUsuarioAgregado");
   if (modal) modal.remove();
 }
+
+function mostrarModalUsuarioExistente(usuario) {
+  const modalAnterior = document.getElementById("modalUsuarioExistente");
+  if (modalAnterior) modalAnterior.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "modalUsuarioExistente";
+
+  modal.innerHTML = `
+    <div style="
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.60);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    ">
+      <div style="
+        background: white;
+        width: 95%;
+        max-width: 430px;
+        border-radius: 20px;
+        padding: 25px;
+        position: relative;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      ">
+        <button onclick="cerrarModalUsuarioExistente()" style="
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: #dc3545;
+          color: white;
+          border: none;
+          font-size: 22px;
+          font-weight: bold;
+          cursor: pointer;
+          padding: 0;
+        ">×</button>
+
+        <h2 style="margin-top: 10px;">⚠️ Ya registrado</h2>
+
+        <p style="
+          text-align:center;
+          font-weight:bold;
+          color:#dc3545;
+        ">
+          Torre y depa ya registrado.
+        </p>
+
+        <p style="
+          text-align:center;
+          font-weight:bold;
+          color:#2f3542;
+        ">
+          Datos de acceso registrados:
+        </p>
+
+        <table style="
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+          font-size: 14px;
+        ">
+          <tr>
+            <th style="text-align:left;">Campo</th>
+            <th style="text-align:left;">Dato</th>
+          </tr>
+          <tr>
+            <td><b>Usuario</b></td>
+            <td>${usuario.usuario || ""}</td>
+          </tr>
+          <tr>
+            <td><b>Password</b></td>
+            <td>${usuario.password || ""}</td>
+          </tr>
+          <tr>
+            <td><b>Nombre</b></td>
+            <td>${usuario.nombre || ""}</td>
+          </tr>
+          <tr>
+            <td><b>Rol</b></td>
+            <td>${usuario.rol || ""}</td>
+          </tr>
+          <tr>
+            <td><b>Torre</b></td>
+            <td>${usuario.torre || ""}</td>
+          </tr>
+          <tr>
+            <td><b>Depa</b></td>
+            <td>${usuario.depa || ""}</td>
+          </tr>
+        </table>
+
+        <button onclick="cerrarModalUsuarioExistente()" style="
+          margin-top: 20px;
+          background: #007bff;
+          color: white;
+        ">Aceptar</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function cerrarModalUsuarioExistente() {
+  const modal = document.getElementById("modalUsuarioExistente");
+  if (modal) modal.remove();
+}
+
+pantallaLogin();
